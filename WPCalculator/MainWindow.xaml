@@ -1,0 +1,107 @@
+﻿<Window x:Class="WPCalculator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WP Calculator - Движок слабейшего предусловия" Height="800" Width="900" Background="#FF6787A4">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Строка 0: Пресеты и постусловие -->
+            <RowDefinition Height="*"/>
+            <!-- Строка 1: Редактор кода -->
+            <RowDefinition Height="Auto"/>
+            <!-- Строка 2: Кнопки -->
+            <RowDefinition Height="*"/>
+            <!-- Строка 3: Результаты -->
+        </Grid.RowDefinitions>
+
+        <!-- Пресеты и постусловие -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <GroupBox Header="Пресеты" Margin="0,0,10,0">
+                <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" 
+                          DisplayMemberPath="Name" Width="200" Height="30"/>
+            </GroupBox>
+
+            <GroupBox Header="Цель (Post)" >
+                <StackPanel Orientation="Horizontal">
+                    <!-- TextBox связан с PostConditionText -->
+                    <TextBox Text="{Binding PostConditionText}" Margin="5" Height="30" Width="200" Background="#FFDBE2E8"/>
+                    <!-- TextBlock показывает человекочитаемое описание -->
+                    <TextBlock Text="{Binding HumanReadablePost}" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="White"/>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+
+        <!-- Редактор кода -->
+        <GroupBox Grid.Row="1" Header="Программа">
+            <!-- Многострочное поле для ввода кода -->
+            <TextBox Text="{Binding ProgramCode}" AcceptsReturn="True" 
+                     VerticalScrollBarVisibility="Auto" Margin="5" Background="#FFDBE2E8" 
+                     FontFamily="Consolas" FontSize="12"/>
+        </GroupBox>
+
+        <!-- Кнопки управления -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <!-- Command связывает кнопку с методом в ViewModel -->
+            <Button Content="Рассчитать WP" Command="{Binding CalculateWPCommand}" 
+                    Margin="5" Height="30" Background="#FF4CAF50" Foreground="White"/>
+            <Button Content="Очистить шаги" Command="{Binding ClearStepsCommand}" 
+                    Margin="5" Height="30" Background="#FFA3C2E0"/>
+            <Button Content="Очистить результат" Command="{Binding ClearResultCommand}" 
+                    Margin="5" Height="30" Background="#FFA3C2E0"/>
+            <Button Content="Показать триаду" Command="{Binding ShowHoareTripleCommand}" 
+                    Margin="5" Height="30" Background="#FF2196F3" Foreground="White"/>
+        </StackPanel>
+
+        <!-- Результаты -->
+        <GroupBox Grid.Row="3" Header="Результаты">
+            <TabControl>
+                <!-- Вкладка 1: Пошаговый расчет -->
+                <TabItem Header="Пошаговый расчет">
+                    <!-- ListBox показывает коллекцию CalculationSteps -->
+                    <ListBox ItemsSource="{Binding CalculationSteps}" Background="#FFDBE2E8"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="5">
+                                    <TextBlock Text="{Binding StepDescription}" FontWeight="Bold" Foreground="DarkBlue"/>
+                                    <TextBlock Text="{Binding Condition}" Margin="10,0,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </TabItem>
+
+                <!-- Вкладка 2: Итоговый WP -->
+                <TabItem Header="Итоговый WP">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="10">
+                            <TextBlock Text="Слабейшее предусловие:" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <!-- Показывает FinalPrecondition -->
+                            <TextBlock Text="{Binding FinalPrecondition}" FontSize="14" Background="White" Padding="5"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <Button Grid.Row="1" Content="Очистить результат" 
+                                Command="{Binding ClearResultCommand}" Margin="10" HorizontalAlignment="Right"
+                                Background="#FFA3C2E0"/>
+                    </Grid>
+                </TabItem>
+
+                <!-- Вкладка 3: Триада Хоара -->
+                <TabItem Header="Триада Хоара">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Триада Хоара:" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <!-- Показывает HoareTriple -->
+                        <TextBlock Text="{Binding HoareTriple}" FontSize="16" Background="White" Padding="10"
+                                   TextAlignment="Center" FontFamily="Consolas" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </GroupBox>
+    </Grid>
+</Window>
