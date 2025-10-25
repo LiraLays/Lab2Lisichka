@@ -1,6 +1,6 @@
 ﻿namespace WPCalculator.Models
 {
-    
+
     public class CalculationStep
     {
         public string StepDescription { get; set; }  // Что делали на этом шаге
