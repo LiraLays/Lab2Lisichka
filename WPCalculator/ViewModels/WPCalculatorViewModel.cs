@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 using WPCalculator.Models;
 using WPCalculator.Services;
@@ -205,7 +206,7 @@ namespace WPCalculator.ViewModels
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
-            // ?. - проверка на null (если есть )
+            //  - проверка на null (если есть )
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
