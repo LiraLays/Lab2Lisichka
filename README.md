@@ -99,18 +99,22 @@ WP: (x > 0 ∧ 10 >= 0) ∨ (!(x > 0) ∧ 0 >= 0)
 ```bash
 git clone <repository-url>
 cd WPCalculator
+```
 
 2. Восстановление зависимостей
 ```bash
 dotnet restore
+```
 
 3. Сборка проекта
 ```bash
 dotnet build
+```
 
 4. Запуск приложения
 ```bash
 dotnet run --project WPCalculator csproj
+```
 
 **Альтернативный запуск через Visual Studio**
 - Откройте WPCalculator.sln
@@ -167,6 +171,7 @@ public abstract class Expression
     public abstract string ToHumanReadable()
     public virtual List<string> GetDefinitenessConditions()
 }
+```
 
 **Класс Statement**
 Базовый класс для представления программных операторов
@@ -177,6 +182,7 @@ public abstract class Statement
     public abstract (Expression wp, List<string> steps) CalculateWP(
         Expression postCondition, string stepPrefix = "")
 }
+```
 
 **Особенности реализации**
 
