@@ -62,7 +62,7 @@ namespace WPCalculator.Models
             steps.AddRange(elseWP.steps);
 
             // Объединяем результаты: (условие AND thenWP) OR (NOT условие AND elseWP)
-            var result = new ComplexExpression($"({Condition} ∧ {thenWP.wp}) ∨ (!{Condition} ∧ {elseWP.wp})");
+            var result = new ComplexExpression($"({Condition} ∧ {thenWP.wp}) ∨ (!({Condition}) ∧ {elseWP.wp})");
 
             steps.Add($"{stepPrefix}Объединяем ветки: {result}");
 
@@ -84,6 +84,12 @@ namespace WPCalculator.Models
                 var (newCondition, steps) = statements[i].CalculateWP(currentCondition, stepPrefix);
                 currentCondition = newCondition;
                 allSteps.AddRange(steps);
+
+                // Добавляем разделитель между операторами
+                if (i > 0)
+                {
+                    allSteps.Add($"{stepPrefix}---");
+                }
             }
 
             return (currentCondition, allSteps);

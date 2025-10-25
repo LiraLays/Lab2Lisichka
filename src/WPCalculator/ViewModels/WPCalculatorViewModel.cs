@@ -18,10 +18,25 @@ namespace WPCalculator.ViewModels
         private ObservableCollection<CalculationStep> _calculationSteps;
         private string _humanReadablePost = "";
         private string _hoareTriple = "";
+        private string _errorMessage = "";
 
         // Свойства, которые связаны с интерфейсом через Binding
         public string PostConditionText { get; set; } = "max > 100";
         public string ProgramCode { get; set; } = "if (x1 >= x2)\n    max := x1;\nelse\n    max := x2;";
+
+        // Свойство для отображения ошибок
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set
+            {
+                _errorMessage = value;
+                OnPropertyChanged(nameof(ErrorMessage));
+                OnPropertyChanged(nameof(HasError));
+            }
+        }
+
+        public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
         // ObservableCollection автоматически обновляет интерфейс при изменении
         public ObservableCollection<CalculationStep> CalculationSteps
@@ -77,6 +92,7 @@ namespace WPCalculator.ViewModels
         public ICommand ClearStepsCommand { get; }
         public ICommand ClearResultCommand { get; }
         public ICommand ShowHoareTripleCommand { get; }
+        public ICommand ClearErrorCommand { get; }
 
         public WPCalculatorViewModel()
         {
@@ -88,6 +104,7 @@ namespace WPCalculator.ViewModels
             ClearStepsCommand = new RelayCommand(ClearSteps);
             ClearResultCommand = new RelayCommand(ClearResult);
             ShowHoareTripleCommand = new RelayCommand(ShowHoareTriple);
+            ClearErrorCommand = new RelayCommand(ClearError);
 
             // Загружаем примеры
             InitializePresets();
@@ -97,13 +114,26 @@ namespace WPCalculator.ViewModels
         // Главный метод расчета WP
         private void CalculateWP()
         {
+            // Очистка предыдущих ошибок
+            ClearError();
             CalculationSteps.Clear();
 
             try
             {
+                // Проверка введенных данных
+                if (!ValidateInput())
+                    return;
+
                 // Парсим программу из текста
                 var parser = new ProgramParser();
                 var program = parser.ParseProgram(ProgramCode);
+
+                // Проверяем, что удалось распарсить хотя бы один оператор
+                if (program.Count == 0)
+                {
+                    ShowError("Не удалось распознать программу. Проверьте синтаксис.");
+                    return;
+                }
 
                 // Создаем объект постусловия
                 var postCondition = new ComplexExpression(PostConditionText);
@@ -122,29 +152,128 @@ namespace WPCalculator.ViewModels
                 // Устанавливаем итоговый результат
                 FinalPrecondition = wp.ToString();
             }
+            catch (FormatException ex)
+            {
+                ShowError($"Ошибка формата: {ex.Message}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                ShowError($"Ошибка выполнения: {ex.Message}");
+            }
             catch (Exception ex)
             {
-                // Если что-то пошло не так - показываем ошибку
-                CalculationSteps.Add(new CalculationStep("Ошибка", ex.Message));
-                FinalPrecondition = "Ошибка расчета";
+                ShowError($"Неожиданная ошибка: {ex.Message}");
             }
         }
+
+        // Проверка корректности введенных данных
+        private bool ValidateInput()
+        {
+            // Проверка постусловия
+            if (string.IsNullOrWhiteSpace(PostConditionText))
+            {
+                ShowError("Постусловие не может быть пустым.");
+                return false;
+            }
+
+            if (PostConditionText.Length > 500)
+            {
+                ShowError("Постусловие слишком длинное. Максимум 500 символов.");
+                return false;
+            }
+
+            // Проверка программы
+            if (string.IsNullOrWhiteSpace(ProgramCode))
+            {
+                ShowError("Программа не может быть пустой.");
+                return false;
+            }
+
+            if (ProgramCode.Length > 2000)
+            {
+                ShowError("Программа слишком длинная. Максимум 2000 символов.");
+                return false;
+            }
+
+            // Проверка на наличие недопустимых символов в постусловии
+            var invalidChars = PostConditionText.Where(c =>
+                !char.IsLetterOrDigit(c) &&
+                !char.IsWhiteSpace(c) &&
+                !IsAllowedSymbol(c)).ToArray();
+
+            if (invalidChars.Any())
+            {
+                ShowError($"Недопустимые символы в постусловии: {string.Join(", ", invalidChars.Distinct())}");
+                return false;
+            }
+
+            // Проверка на наличие недопустимых символов в программе
+            invalidChars = ProgramCode.Where(c =>
+                !char.IsLetterOrDigit(c) &&
+                !char.IsWhiteSpace(c) &&
+                !IsAllowedSymbol(c) &&
+                c != ':' && c != '=' && c != ';' && c != '(' && c != ')' && c != '\n' && c != '\r').ToArray();
+
+            if (invalidChars.Any())
+            {
+                ShowError($"Недопустимые символы в программе: {string.Join(", ", invalidChars.Distinct())}");
+                return false;
+            }
+
+            return true;
+        }
+
+        // Проверка допустимости символов для математических выражений
+        private bool IsAllowedSymbol(char c)
+        {
+            var allowedSymbols = new[] { '>', '<', '=', '!', '&', '|', '+', '-', '*', '/', '(', ')', '[', ']', '{', '}', ',', '.' };
+            return allowedSymbols.Contains(c);
+        }
+
+        // Показ ошибки
+        private void ShowError(string message)
+        {
+            ErrorMessage = message;
+            CalculationSteps.Add(new CalculationStep("ОШИБКА", message));
+            FinalPrecondition = "Ошибка расчета";
+        }
+
+        // Очистка ошибки
+        private void ClearError()
+        {
+            ErrorMessage = "";
+        }
+
 
         // Обновляет человекочитаемое описание
         private void UpdateHumanReadablePost()
         {
-            var expression = new ComplexExpression(PostConditionText);
-            HumanReadablePost = expression.ToHumanReadable();
+            try
+            {
+                var expression = new ComplexExpression(PostConditionText);
+                HumanReadablePost = expression.ToHumanReadable();
+            }
+            catch (Exception ex)
+            {
+                HumanReadablePost = $"Ошибка преобразования: {ex.Message}";
+            }
         }
 
         // Формирует триаду Хоара
         private void UpdateHoareTriple()
         {
-            if (!string.IsNullOrEmpty(FinalPrecondition))
+            if (!string.IsNullOrEmpty(FinalPrecondition) && !HasError)
             {
-                var pre = new ComplexExpression(FinalPrecondition).ToHumanReadable();
-                var post = new ComplexExpression(PostConditionText).ToHumanReadable();
-                HoareTriple = $"{{ {pre} }}\nпрограмма\n{{ {post} }}";
+                try
+                {
+                    var pre = new ComplexExpression(FinalPrecondition).ToHumanReadable();
+                    var post = new ComplexExpression(PostConditionText).ToHumanReadable();
+                    HoareTriple = $"{{ {pre} }}\nпрограмма\n{{ {post} }}";
+                }
+                catch (Exception ex)
+                {
+                    HoareTriple = $"Ошибка формирования триады: {ex.Message}";
+                }
             }
         }
 
@@ -156,12 +285,14 @@ namespace WPCalculator.ViewModels
         private void ClearSteps()
         {
             CalculationSteps.Clear();
+            ClearError();
         }
 
         private void ClearResult()
         {
             FinalPrecondition = "";
             HoareTriple = "";
+            ClearError();
         }
 
         // Загружает готовые примеры тоже не обезательный момент можно удолить нашел на ютубе добавил чтоб пример готовый был для просмотра 
@@ -186,6 +317,12 @@ namespace WPCalculator.ViewModels
                     Name = "Последовательность присваиваний",
                     ProgramCode = "x := x + 10;\ny := x + 1;",
                     PostCondition = "y == x - 9 ∧ x > 15"
+                },
+                new Preset
+                {
+                    Name = "Простое условие",
+                    ProgramCode = "if (x > 0)\n    y := 10;\nelse\n    y := 0;",
+                    PostCondition = "y >= 0"
                 }
             };
 
@@ -199,6 +336,7 @@ namespace WPCalculator.ViewModels
             PostConditionText = preset.PostCondition;
             OnPropertyChanged(nameof(ProgramCode));
             OnPropertyChanged(nameof(PostConditionText));
+            ClearError();
             UpdateHumanReadablePost();
         }
 

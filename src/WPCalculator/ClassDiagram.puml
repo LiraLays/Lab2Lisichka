@@ -1,0 +1,99 @@
+@startuml
+
+!define MODEL <<Model>>
+!define SERVICE <<Service>>
+!define VIEWMODEL <<ViewModel>>
+
+package "WPCalculator" {
+  
+  package "Models" MODEL {
+    abstract class Expression {
+      + Substitute(variable, expression)
+      + ToHumanReadable()
+      + GetDefinitenessConditions()
+    }
+    
+    class VariableExpression {
+      + string Name
+    }
+    
+    class ConstantExpression {
+      + string Value  
+    }
+    
+    class ComplexExpression {
+      + string ExpressionText
+    }
+    
+    Expression <|-- VariableExpression
+    Expression <|-- ConstantExpression
+    Expression <|-- ComplexExpression
+    
+    abstract class Statement {
+      + CalculateWP(postCondition, stepPrefix)
+    }
+    
+    class Assignment {
+      + string Variable
+      + string Expression
+    }
+    
+    class IfStatement {
+      + string Condition
+      + List<Statement> ThenBranch
+      + List<Statement> ElseBranch
+    }
+    
+    class Sequence {
+      + List<Statement> Statements
+    }
+    
+    Statement <|-- Assignment
+    Statement <|-- IfStatement  
+    Statement <|-- Sequence
+    
+    class CalculationStep {
+      + string StepDescription
+      + string Condition
+    }
+  }
+  
+  package "Services" SERVICE {
+    class ProgramParser {
+      + ParseProgram(code)
+      + ParseAssignment(line)
+      + ParseIfStatement(line)
+    }
+  }
+  
+  package "ViewModels" VIEWMODEL {
+    class WPCalculatorViewModel {
+      + string PostConditionText
+      + string ProgramCode
+      + ObservableCollection<CalculationStep> CalculationSteps
+      + ICommand CalculateWPCommand
+      + CalculateWP()
+    }
+    
+    class Preset {
+      + string Name
+      + string ProgramCode
+      + string PostCondition
+    }
+    
+    class RelayCommand {
+      + Action _execute
+      + Execute(parameter)
+    }
+  }
+}
+
+' Relationships
+ProgramParser --> Statement : creates
+WPCalculatorViewModel --> ProgramParser : uses
+WPCalculatorViewModel --> Statement : uses
+WPCalculatorViewModel --> Expression : uses
+WPCalculatorViewModel --> CalculationStep : contains
+WPCalculatorViewModel --> Preset : contains
+
+@enduml

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace WPCalculator.Models
 {
@@ -12,6 +13,25 @@ namespace WPCalculator.Models
 
         // Проверки типа "деление на ноль"
         public virtual List<string> GetDefinitenessConditions() => new List<string>();
+        public static Expression ParseExpression(string expressionText)
+        {
+            expressionText = expressionText.Trim();
+
+            // Если это просто число
+            if (double.TryParse(expressionText, out _))
+            {
+                return new ConstantExpression(expressionText);
+            }
+
+            // Если это одна переменная (только буквы)
+            if (Regex.IsMatch(expressionText, @"^[a-zA-Z_][a-zA-Z0-9_]*$"))
+            {
+                return new VariableExpression(expressionText);
+            }
+
+            // Во всех остальных случаях - сложное выражение
+            return new ComplexExpression(expressionText);
+        }
     }
 
     // Просто переменная (x, y, max)
@@ -25,7 +45,7 @@ namespace WPCalculator.Models
         {
             // Если это та переменная, которую нужно заменить
             if (Name == variable)
-                return new ComplexExpression(expression); // Заменяем
+                return ParseExpression(expression); // Заменяем
             return this; // Иначе оставляем как есть
         }
 
@@ -55,21 +75,25 @@ namespace WPCalculator.Models
         public override Expression Substitute(string variable, string expression)
         {
             // Простая замена: x на (x+1) в "x > 5" → "(x+1) > 5"
-            var result = ExpressionText.Replace(variable, $"({expression})");
+            var pattern = $@"\b{variable}\b";
+            var result = Regex.Replace(ExpressionText, pattern, $"({expression})");
             return new ComplexExpression(result);
+            //var result = ExpressionText.Replace(variable, $"({expression})");
+            //return new ComplexExpression(result);
         }
 
         public override string ToHumanReadable()
         {
             // Заменяем мат. символы на русские слова
             return ExpressionText
-                .Replace(">", " больше ")
-                .Replace("<", " меньше ")
-                .Replace(">=", " больше или равно ")
-                .Replace("<=", " меньше или равно ")
-                .Replace("==", " равно ")
-                .Replace("&&", " и ")
-                .Replace("||", " или ");
+                .Replace(">=", "больше или равно")
+                .Replace("<=", "меньше или равно")
+                .Replace(">", "больше")
+                .Replace("<", "меньше")
+                .Replace("==", "равно")
+                .Replace("&&", "и")
+                .Replace("||", "или")
+                .Trim();
         }
 
         public override List<string> GetDefinitenessConditions()
@@ -80,8 +104,16 @@ namespace WPCalculator.Models
             if (ExpressionText.Contains("/"))
             {
                 // Простая проверка - если есть /, добавляем условие
+                // TODO: Более сложный анализ для определения знаменателя
                 conditions.Add("знаменатель ≠ 0");
             }
+
+            // Проверяем другие потенциальные проблемы
+            if (ExpressionText.Contains("sqrt("))
+                conditions.Add("подкоренное выражение ≥ 0");
+
+            if (ExpressionText.Contains("log("))
+                conditions.Add("аргумент логарифма > 0");
 
             return conditions;
         }

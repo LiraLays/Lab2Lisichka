@@ -33,7 +33,7 @@ namespace WPCalculator.Services
         }
 
         // Парсит присваивание: "x := 5" → Assignment { Variable = "x", Expression = "5" }
-        private Assignment ParseAssignment(string line)
+        public Assignment ParseAssignment(string line)
         {
             var parts = line.Split(new[] { ":=" }, System.StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2)
@@ -48,7 +48,7 @@ namespace WPCalculator.Services
         }
 
         // Парсит if: "if (x > 5)" → IfStatement { Condition = "x > 5" }
-        private IfStatement ParseIfStatement(string line)
+        public IfStatement ParseIfStatement(string line)
         {
             // Ищем условие между скобками
             var conditionStart = line.IndexOf('(') + 1;
